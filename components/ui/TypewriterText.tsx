@@ -1,5 +1,6 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
+import { parseMarkdown } from "@/lib/parseMarkdown";
 
 export default function TypewriterText({ text, speed = 18 }: { text: string; speed?: number }) {
   const [displayed, setDisplayed] = useState("");
@@ -20,9 +21,11 @@ export default function TypewriterText({ text, speed = 18 }: { text: string; spe
     setIndex(0);
   }, [text]);
 
+  const renderedHTML = useMemo(() => parseMarkdown(displayed), [displayed]);
+
   return (
-    <span>
-      {displayed}
+    <span className="markdown-content">
+      <span dangerouslySetInnerHTML={{ __html: renderedHTML }} />
       {index < text.length && <span className="animate-pulse opacity-50 ml-0.5">|</span>}
     </span>
   );

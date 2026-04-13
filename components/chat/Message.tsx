@@ -6,7 +6,8 @@ import ReactionBar from "./ReactionBar";
 import RemixPanel from "./RemixPanel";
 import { GitBranch, Copy, Check } from "lucide-react";
 import TypewriterText from "@/components/ui/TypewriterText";
-import { useState } from "react";
+import { parseMarkdown } from "@/lib/parseMarkdown";
+import { useState, useMemo } from "react";
 
 interface Props {
   message: MessageType;
@@ -31,6 +32,8 @@ export default function Message({ message, onReact, onBranch, modelName, modelIc
     }
   };
 
+  const userContent = useMemo(() => parseMarkdown(message.content), [message.content]);
+
   return (
     <motion.div
       className={`flex items-start gap-3 w-full mb-5 ${isUser ? "flex-row-reverse" : "flex-row"}`}
@@ -54,13 +57,17 @@ export default function Message({ message, onReact, onBranch, modelName, modelIc
       <div className={`flex flex-col gap-1 max-w-[78%] ${isUser ? "items-end" : "items-start"}`}>
         {/* Bubble */}
         <div
-          className={`px-4 py-3 text-[14px] leading-relaxed relative ${
+          className={`px-4 py-3 text-[14px] leading-relaxed relative markdown-content ${
             isUser
               ? "bg-gradient-to-r from-[#3b82f6] to-[#60a5fa] text-white rounded-2xl rounded-tr-sm shadow-md"
               : "bg-white text-[#0f172a] rounded-2xl rounded-tl-sm border border-[#e2e8f0] shadow-sm"
           }`}
         >
-          {isUser ? message.content : <TypewriterText text={message.content} speed={12} />}
+          {isUser ? (
+            <span dangerouslySetInnerHTML={{ __html: userContent }} />
+          ) : (
+            <TypewriterText text={message.content} speed={12} />
+          )}
           
           {message.reactions && message.reactions.length > 0 && (
             <div className="absolute -bottom-3 right-2 flex gap-0.5 bg-white border border-[#e2e8f0] rounded-full px-1.5 py-0.5 text-xs shadow-sm">
