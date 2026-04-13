@@ -4,7 +4,7 @@ import { Message } from "@/models/Message";
 
 export async function DELETE(
   req: NextRequest,
-  { params }: { params: { messageId: string } }
+  { params }: { params: Promise<{ messageId: string }> }
 ) {
   try {
     const { messageId } = await params;
