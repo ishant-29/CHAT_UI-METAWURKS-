@@ -9,7 +9,7 @@ export function useChat(initialConversationId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [activeConvoId, setActiveConvoId] = useState<string | undefined>(initialConversationId);
 
-  const sendMessage = useCallback(async (content: string) => {
+  const sendMessage = useCallback(async (content: string, modelId: string = "gemini-pro") => {
     if (!content.trim()) return;
 
     const userMessage: Message = {
@@ -26,7 +26,7 @@ export function useChat(initialConversationId?: string) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ content, conversationId: activeConvoId }),
+        body: JSON.stringify({ content, conversationId: activeConvoId, modelId }),
       });
 
       if (!res.ok) throw new Error("API request failed");

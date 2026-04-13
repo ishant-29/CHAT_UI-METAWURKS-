@@ -3,10 +3,11 @@ import dbConnect from "@/lib/mongodb";
 import { Message } from "@/models/Message";
 import { Conversation } from "@/models/Conversation";
 import { getMockResponse } from "@/lib/utils/mockResponses";
+import { Groq } from "groq-sdk";
 
 export async function POST(req: NextRequest) {
   try {
-    const { content, conversationId, branchId = "main" } = await req.json();
+    const { content, conversationId, branchId = "main", modelId = "gemini-pro" } = await req.json();
 
     if (!content?.trim()) {
       return NextResponse.json({ error: "Message content is required" }, { status: 400 });
@@ -32,11 +33,56 @@ export async function POST(req: NextRequest) {
       importance: Math.random() * 0.5,
     });
 
-    // Simulate thinking delay (1-2 seconds)
-    const delay = 1000 + Math.random() * 1000;
-    await new Promise((res) => setTimeout(res, delay));
+    let botContent = "";
+    const openRouterApiKey = process.env.OPENROUTER_API_KEY;
 
-    const botContent = getMockResponse(content);
+    try {
+      if (modelId === "llama-3") {
+        // Use Groq directly for Llama 3
+        const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+        const completion = await groq.chat.completions.create({
+          messages: [{ role: "user", content }],
+          model: "llama-3.1-8b-instant"
+        });
+        botContent = completion.choices[0]?.message?.content || getMockResponse(content);
+      } else {
+        // Map frontend model IDs to OpenRouter model endpoints
+        let orModel = "google/gemini-2.0-flash-001"; // Default
+
+        if (modelId === "deepseek-v3") {
+          orModel = "deepseek/deepseek-chat";
+        } else if (modelId === "gemini-pro") {
+          orModel = "google/gemini-2.0-flash-001";
+        } else if (modelId === "gpt-4") {
+          orModel = "openai/gpt-4o";
+        } else if (modelId === "claude-sonnet") {
+          orModel = "anthropic/claude-3.7-sonnet";
+        } else if (modelId === "grok-2") {
+          orModel = "x-ai/grok-3";
+        }
+
+        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Authorization": `Bearer ${openRouterApiKey}`,
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+             model: orModel,
+             messages: [{ role: "user", content }]
+          })
+        });
+
+        if (!res.ok) {
+          throw new Error(`OpenRouter API failed with status ${res.status}`);
+        }
+        const data = await res.json();
+        botContent = data.choices?.[0]?.message?.content || getMockResponse(content);
+      }
+    } catch (apiError) {
+      console.error("API error for model", modelId, apiError);
+      botContent = "I encountered an API error. Mock fallback: " + getMockResponse(content);
+    }
 
     // Save bot message
     const botMessage = await Message.create({

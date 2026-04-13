@@ -5,6 +5,7 @@ import { REACTION_PROMPTS } from "@/lib/constants/reactions";
 import { DEFAULT_MODEL, LLMModel } from "@/lib/constants/models";
 import Message from "./Message";
 import InputArea from "./InputArea";
+import ModelSelector from "./ModelSelector";
 import TypingIndicator from "./TypingIndicator";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
@@ -66,10 +67,10 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
           await fetch('/api/schedule', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ content, conversationId: activeConvoId, scheduledFor })
+              body: JSON.stringify({ content, conversationId: activeConvoId, scheduledFor, modelId: selectedModel.id })
           });
       } else {
-          sendMessage(content);
+          sendMessage(content, selectedModel.id);
       }
   };
 
@@ -85,26 +86,34 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
       <div className="absolute bottom-[-10%] right-[-5%] w-[500px] h-[450px] rounded-full bg-blue-300/40 blur-[100px] pointer-events-none" />
       <div className="absolute top-[10%] left-[-10%] w-[350px] h-[350px] rounded-full bg-purple-300/30 blur-[90px] pointer-events-none" />
 
-      <header className="relative z-10 flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] bg-white">
+      <header className="relative z-50 flex items-center justify-between px-6 py-4 border-b border-[#e2e8f0] bg-white">
         
-        {/* Left Side: Logo & Title */}
-        <div className="flex items-center gap-3">
+        {/* Left Side: Logo */}
+        <div className="flex items-center">
             <img src="/metawurks-logo.svg" alt="MetaWurks" className="h-7 w-auto" />
-            <h1 className="font-display text-lg font-bold text-[#0f172a] leading-none mt-0.5">{getChatTitle()}</h1>
+        </div>
+
+        {/* Center: Title */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+            <h1 className="font-display text-lg font-bold text-[#0f172a] leading-none">
+                {getChatTitle()}
+            </h1>
         </div>
 
         {/* Right Side: Active Model */}
         <div className="flex items-center gap-1.5 text-[12px] font-medium text-[#64748b]">
             <span>Using model:</span>
-            <motion.div 
-                key={selectedModel.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                className="flex items-center gap-1.5 px-2 py-1 bg-[#f1f5f9] rounded-md text-[#3b82f6] shadow-sm ml-0.5"
-            >
-                <span className="text-[14px]">{selectedModel.icon}</span>
-                <span className="font-semibold">{selectedModel.name}</span>
-            </motion.div>
+            <ModelSelector selected={selectedModel} onChange={setSelectedModel} align="top">
+                <motion.div 
+                    key={selectedModel.id}
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-[#f1f5f9] rounded-md text-[#3b82f6] shadow-sm ml-0.5 hover:bg-blue-50 transition-colors"
+                >
+                    <span className="text-[14px]">{selectedModel.icon}</span>
+                    <span className="font-semibold">{selectedModel.name}</span>
+                </motion.div>
+            </ModelSelector>
         </div>
 
       </header>

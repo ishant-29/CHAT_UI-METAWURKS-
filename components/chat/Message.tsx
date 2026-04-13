@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Message as MessageType } from "@/types/chat";
 import ReactionBar from "./ReactionBar";
 import RemixPanel from "./RemixPanel";
-import { GitBranch } from "lucide-react";
+import { GitBranch, Copy, Check } from "lucide-react";
 import TypewriterText from "@/components/ui/TypewriterText";
 import { useState } from "react";
 
@@ -19,6 +19,17 @@ interface Props {
 export default function Message({ message, onReact, onBranch, modelName, modelIcon }: Props) {
   const isUser = message.role === "user";
   const [showControls, setShowControls] = useState(false);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(message.content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (e) {
+      console.error("Failed to copy", e);
+    }
+  };
 
   return (
     <motion.div
@@ -64,23 +75,35 @@ export default function Message({ message, onReact, onBranch, modelName, modelIc
         </span>
 
         {/* Controls */}
-        {!isUser && showControls && (
+        {showControls && (
           <motion.div
-            className="flex flex-wrap items-center gap-2 mt-0.5"
+            className={`flex flex-wrap items-center gap-2 mt-0.5 ${isUser ? "justify-end" : "justify-start"}`}
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
           >
-            <ReactionBar messageId={message.id} onReact={(emoji) => onReact(message.id, emoji)} />
-            <RemixPanel content={message.content} />
+            {!isUser && (
+              <>
+                <ReactionBar messageId={message.id} onReact={(emoji) => onReact(message.id, emoji)} />
+                <RemixPanel content={message.content} />
+                <button 
+                    onClick={() => onBranch?.(message.id)}
+                    className="flex items-center gap-1.5 px-2 py-1 bg-white border border-[#e2e8f0] rounded-md text-[11px] font-medium text-[#64748b] hover:text-[#3b82f6] hover:border-[#93b4e8] transition-colors shadow-sm"
+                    title="Branch conversation from here"
+                >
+                    <GitBranch size={13} />
+                    Branch
+                </button>
+              </>
+            )}
             
-            {/* Branch Chat Button */}
+            {/* Copy Button */}
             <button 
-                onClick={() => onBranch?.(message.id)}
+                onClick={handleCopy}
                 className="flex items-center gap-1.5 px-2 py-1 bg-white border border-[#e2e8f0] rounded-md text-[11px] font-medium text-[#64748b] hover:text-[#3b82f6] hover:border-[#93b4e8] transition-colors shadow-sm"
-                title="Branch conversation from here"
+                title="Copy message"
             >
-                <GitBranch size={13} />
-                Branch
+                {copied ? <Check size={13} className="text-green-500" /> : <Copy size={13} />}
+                {copied ? "Copied" : "Copy"}
             </button>
           </motion.div>
         )}

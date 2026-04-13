@@ -9,6 +9,7 @@ export interface LLMModel {
   description: string;
   color: string;
   icon: React.ReactNode;
+  status?: 'online' | 'down';
 }
 
 export const LLM_MODELS: LLMModel[] = [
@@ -19,6 +20,7 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Most capable model for complex tasks",
     color: "#10a37f",
     icon: <SiOpenai />,
+    status: 'down',
   },
   {
     id: "claude-sonnet",
@@ -27,6 +29,7 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Balanced speed and intelligence",
     color: "#d97706",
     icon: <SiAnthropic />,
+    status: 'down',
   },
   {
     id: "gemini-pro",
@@ -35,6 +38,7 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Advanced reasoning and multimodal",
     color: "#4285f4",
     icon: <SiGoogle />,
+    status: 'online',
   },
   {
     id: "deepseek-v3",
@@ -43,6 +47,7 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Open-source high performance",
     color: "#6366f1",
     icon: <Microscope />,
+    status: 'online',
   },
   {
     id: "llama-3",
@@ -51,6 +56,7 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Open-source foundation model",
     color: "#0ea5e9",
     icon: <SiMeta />,
+    status: 'online',
   },
   {
     id: "grok-2",
@@ -59,7 +65,8 @@ export const LLM_MODELS: LLMModel[] = [
     description: "Real-time knowledge and wit",
     color: "#ef4444",
     icon: <SiX />,
+    status: 'down',
   },
 ];
 
-export const DEFAULT_MODEL = LLM_MODELS[0];
+export const DEFAULT_MODEL = LLM_MODELS.find(m => m.id === "gemini-pro") || LLM_MODELS[2];
