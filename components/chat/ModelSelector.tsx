@@ -73,7 +73,7 @@ export default function ModelSelector({ selected, onChange, children, align = "b
                       <div className="flex items-center gap-1.5">
                         <span className="text-[13px] font-medium text-[#0f172a] flex items-center gap-1">
                           {model.name}
-                          {model.status === 'down' && <AlertTriangle size={12} className="text-amber-500" title="Model currently unavailable" />}
+                          {model.status === 'down' && <AlertTriangle size={12} className="text-amber-500" />}
                         </span>
                         <span className="text-[9px] px-1 py-0.5 rounded bg-[#f1f5f9] text-[#64748b] font-medium">
                           {model.provider}
