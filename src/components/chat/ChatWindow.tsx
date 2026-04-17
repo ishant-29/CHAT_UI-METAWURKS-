@@ -9,31 +9,48 @@ import ModelSelector from "./ModelSelector";
 import TypingIndicator from "./TypingIndicator";
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { useSession } from "next-auth/react";
 
 export default function ChatWindow({ conversationId }: { conversationId?: string }) {
   const { messages, setMessages, isLoading, sendMessage, activeConvoId, setActiveConvoId, branchConversation } = useChat(conversationId);
   const scrollRef = useAutoScroll([messages, isLoading]);
   const [selectedModel, setSelectedModel] = useState<LLMModel>(DEFAULT_MODEL);
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { data: session } = useSession();
+  const [hasRedirected, setHasRedirected] = useState(false);
 
-  // Reset messages when starting a new chat
+  // Reset state when "new" query param changes (new chat clicked)
+  useEffect(() => {
+    const newParam = searchParams.get('new');
+    if (newParam && !conversationId) {
+      setMessages([]);
+      setActiveConvoId(undefined);
+      setHasRedirected(false);
+      // Clean up the URL
+      router.replace('/chat', { scroll: false });
+    }
+  }, [searchParams, conversationId, setMessages, setActiveConvoId, router]);
+
   useEffect(() => {
     if (!conversationId) {
       setMessages([]);
       setActiveConvoId(undefined);
+      setHasRedirected(false);
     }
   }, [conversationId, setMessages, setActiveConvoId]);
 
-  // Redirect to new conversation URL when conversation is created
   useEffect(() => {
-    if (activeConvoId && !conversationId) {
-      router.push(`/chat/${activeConvoId}`);
+    if (activeConvoId && !conversationId && !hasRedirected && messages.length >= 2 && !isLoading) {
+      setHasRedirected(true);
+      // Update URL without redirect - SPA style
+      window.history.pushState({}, '', `/chat/${activeConvoId}`);
     }
-  }, [activeConvoId, conversationId, router]);
+  }, [activeConvoId, conversationId, hasRedirected, messages.length, isLoading]);
 
   useEffect(() => {
-    if (conversationId) {
+    if (conversationId && messages.length === 0) {
         fetch(`/api/conversations/${conversationId}`)
             .then(async (res) => {
                 if (!res.ok) return { messages: [] };
@@ -44,7 +61,7 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
             })
             .catch(err => console.error(err));
     }
-  }, [conversationId, setMessages]);
+  }, [conversationId, messages.length, setMessages]);
 
   const handleReact = async (messageId: string, emoji: string) => {
       setMessages(prev => prev.map(m => 
@@ -126,18 +143,29 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
         </div>
       </header>
 
-      <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto w-full custom-scrollbar pt-6 pb-2">
-        <div className="max-w-5xl mx-auto px-6 w-full pb-8">
-            {messages.length === 0 && (
-                <div className="flex flex-col items-center justify-center h-full min-h-[50vh] text-center space-y-5">
-                    <img src="/metawurks-logo.svg" alt="MetaWurks" className="h-10 w-auto mb-2 opacity-90 drop-shadow-sm" />
-                    <h2 className="text-3xl font-display font-semibold text-[#0f172a] tracking-tight">
-                        Hello! How can I help you today?
-                    </h2>
-                </div>
-            )}
-            
-            {messages.map((msg, index) => (
+      {messages.length === 0 ? (
+        <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-6">
+          <div className="flex flex-col items-center text-center space-y-6 mb-8">
+            <img src="/metawurks-logo.svg" alt="MetaWurks" className="h-10 w-auto mb-2 opacity-90 drop-shadow-sm" />
+            <h2 className="text-3xl font-display font-semibold text-[#0f172a] tracking-tight">
+              Hello{session?.user?.name ? ` ${session.user.name}` : ''}! How can I help you today?
+            </h2>
+          </div>
+          
+          <div className="w-full max-w-3xl">
+            <InputArea 
+              onSend={handleSend} 
+              isLoading={isLoading} 
+              selectedModel={selectedModel} 
+              onModelChange={setSelectedModel}
+            />
+          </div>
+        </div>
+      ) : (
+        <>
+          <div ref={scrollRef} className="relative z-10 flex-1 overflow-y-auto w-full custom-scrollbar pt-6 pb-2">
+            <div className="max-w-5xl mx-auto px-6 w-full pb-8">
+              {messages.map((msg, index) => (
                 <Message 
                   key={msg.id || (msg as any)._id || index} 
                   message={msg} 
@@ -146,18 +174,20 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
                   modelName={selectedModel.name} 
                   modelIcon={selectedModel.icon} 
                 />
-            ))}
-            
-            {isLoading && <TypingIndicator modelName={selectedModel.name} />}
-        </div>
-      </div>
-
-      <InputArea 
-        onSend={handleSend} 
-        isLoading={isLoading} 
-        selectedModel={selectedModel} 
-        onModelChange={setSelectedModel}
-      />
+              ))}
+              
+              {isLoading && <TypingIndicator modelName={selectedModel.name} />}
+            </div>
+          </div>
+          
+          <InputArea 
+            onSend={handleSend} 
+            isLoading={isLoading} 
+            selectedModel={selectedModel} 
+            onModelChange={setSelectedModel}
+          />
+        </>
+      )}
     </div>
   );
 }

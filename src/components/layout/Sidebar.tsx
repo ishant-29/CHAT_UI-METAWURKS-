@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Plus, Menu } from "lucide-react";
 import ConversationList from "@/components/layout/ConversationList";
 import SettingsModal from "./SettingsModal";
@@ -11,6 +11,7 @@ import { useModal } from "@/contexts/ModalContext";
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const isNewChat = pathname === "/chat";
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -20,6 +21,12 @@ export default function Sidebar() {
   const handleSettingsChange = (open: boolean) => {
     setSettingsOpen(open);
     setIsModalOpen(open);
+  };
+
+  const handleNewChat = (e: React.MouseEvent) => {
+    e.preventDefault();
+    // Navigate to /chat with a timestamp to force remount
+    router.push(`/chat?new=${Date.now()}`);
   };
 
   const getUserInitials = () => {
@@ -61,16 +68,15 @@ export default function Sidebar() {
       </div>
 
       <div className="px-3 mb-4">
-        <Link href="/chat">
-          <motion.div
-            whileHover={{ scale: 1.02, y: -1 }}
-            whileTap={{ scale: 0.98 }}
-            className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2"} w-full px-3 py-2.5 rounded-lg border border-[#c9d4e3] bg-white shadow-sm text-[13px] font-medium text-[#0f172a] hover:bg-[#e8edf5] hover:border-[#93b4e8] transition-all`}
-          >
-            <Plus size={16} className="shrink-0" />
-            {!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}>New Chat</motion.span>}
-          </motion.div>
-        </Link>
+        <motion.div
+          whileHover={{ scale: 1.02, y: -1 }}
+          whileTap={{ scale: 0.98 }}
+          onClick={handleNewChat}
+          className={`flex items-center ${isCollapsed ? "justify-center" : "gap-2"} w-full px-3 py-2.5 rounded-lg border border-[#c9d4e3] bg-white shadow-sm text-[13px] font-medium text-[#0f172a] hover:bg-[#e8edf5] hover:border-[#93b4e8] transition-all cursor-pointer`}
+        >
+          <Plus size={16} className="shrink-0" />
+          {!isCollapsed && <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}>New Chat</motion.span>}
+        </motion.div>
       </div>
 
       <div className="flex-1 overflow-y-auto custom-scrollbar px-3 pb-3">
