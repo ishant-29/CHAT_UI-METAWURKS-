@@ -9,14 +9,15 @@ export function useChat(initialConversationId?: string) {
   const [error, setError] = useState<string | null>(null);
   const [activeConvoId, setActiveConvoId] = useState<string | undefined>(initialConversationId);
 
-  const sendMessage = useCallback(async (content: string, modelId: string = "gemini-pro", useWebSearch: boolean = true) => {
-    if (!content.trim()) return;
+  const sendMessage = useCallback(async (content: string, modelId: string = "gemini-pro", useWebSearch: boolean = true, attachments?: any[]) => {
+    if (!content.trim() && (!attachments || attachments.length === 0)) return;
 
     const userMessage: Message = {
       id: uuidv4(),
       content,
       role: "user",
       timestamp: new Date(),
+      attachments,
     };
     setMessages((prev) => [...prev, userMessage]);
     setIsLoading(true);
@@ -33,7 +34,8 @@ export function useChat(initialConversationId?: string) {
           content, 
           conversationId: activeConvoId, 
           modelId,
-          useWebSearch 
+          useWebSearch,
+          attachments 
         }),
       });
 

@@ -11,6 +11,15 @@ export interface Message {
   scheduledFor?: Date;
   sources?: string[];
   usedWebSearch?: boolean;
+  attachments?: Attachment[];
+}
+
+export interface Attachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
 }
 
 export interface MessageRemix {

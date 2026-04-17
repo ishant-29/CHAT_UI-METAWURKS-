@@ -1,5 +1,13 @@
 import mongoose, { Schema, Document } from "mongoose";
 
+export interface IAttachment {
+  id: string;
+  name: string;
+  type: string;
+  size: number;
+  url: string;
+}
+
 export interface IMessage extends Document {
   conversationId: mongoose.Types.ObjectId;
   userId: mongoose.Types.ObjectId;
@@ -12,6 +20,7 @@ export interface IMessage extends Document {
   importance: number;
   isScheduled: boolean;
   scheduledFor?: Date;
+  attachments?: IAttachment[];
 }
 
 const MessageSchema = new Schema<IMessage>({
@@ -26,6 +35,13 @@ const MessageSchema = new Schema<IMessage>({
   importance: { type: Number, default: 0 },
   isScheduled: { type: Boolean, default: false },
   scheduledFor: { type: Date },
+  attachments: [{
+    id: { type: String },
+    name: { type: String },
+    type: { type: String },
+    size: { type: Number },
+    url: { type: String },
+  }],
 });
 
 export const Message =

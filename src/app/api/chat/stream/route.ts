@@ -5,6 +5,7 @@ import { Message } from "@/models/Message";
 import { Conversation } from "@/models/Conversation";
 import { Groq } from "groq-sdk";
 import { searchWeb, shouldUseWebSearch, formatSearchContext, extractCitations } from "@/lib/utils/tavilySearch";
+import { processAttachments } from "@/lib/utils/fileProcessor";
 
 export async function POST(req: NextRequest) {
   try {
@@ -26,9 +27,10 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const { content, conversationId, branchId = "main", modelId = "gemini-pro", useWebSearch } = await req.json();
+    const { content, conversationId, branchId = "main", modelId = "gemini-pro", useWebSearch, attachments } = await req.json();
 
-    if (!content?.trim()) {
+    // Allow empty content if there are attachments
+    if (!content?.trim() && (!attachments || attachments.length === 0)) {
       return new Response(JSON.stringify({ error: "Message content is required" }), { 
         status: 400,
         headers: { "Content-Type": "application/json" }
@@ -86,11 +88,23 @@ export async function POST(req: NextRequest) {
       content,
       role: "user",
       importance: Math.random() * 0.5,
+      attachments: attachments || [],
     });
 
     let sources: string[] = [];
     let usedWebSearch = false;
     let searchContext = "";
+    let attachmentContext = "";
+
+    // Process attachments to extract text content
+    if (attachments && attachments.length > 0) {
+      try {
+        const { textContent } = await processAttachments(attachments);
+        attachmentContext = textContent;
+      } catch (err) {
+        console.error("Attachment processing error:", err);
+      }
+    }
 
     const shouldSearch = useWebSearch !== false && shouldUseWebSearch(content);
     if (shouldSearch) {
@@ -106,9 +120,16 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    const enhancedContent = searchContext 
-      ? `${searchContext}Based on the above web search results, please answer the following question:\n\n${content}`
-      : content;
+    // Build enhanced content with attachments and search results
+    let enhancedContent = content;
+    
+    if (attachmentContext) {
+      enhancedContent = `${attachmentContext}\n\nUser message: ${content}`;
+    }
+    
+    if (searchContext) {
+      enhancedContent = `${searchContext}\n\nBased on the above information, please respond to: ${enhancedContent}`;
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({
@@ -118,10 +139,13 @@ export async function POST(req: NextRequest) {
         try {
           if (modelId === "llama-3") {
             const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+            
+            // Llama doesn't support vision, so use text only
             const completion = await groq.chat.completions.create({
               messages: [{ role: "user", content: enhancedContent }],
               model: "llama-3.1-8b-instant",
               stream: true,
+              max_tokens: 4096,
             });
 
             for await (const chunk of completion) {
@@ -132,10 +156,12 @@ export async function POST(req: NextRequest) {
               }
             }
           } else {
-            let model = "google/gemini-2.0-flash-001";
+            // Map internal model IDs to OpenRouter model IDs
+            let model = "google/gemini-2.5-flash"; // Default to Gemini 2.5 Flash
             if (modelId === "deepseek-v3") model = "deepseek/deepseek-chat";
-            else if (modelId === "gemini-pro") model = "google/gemini-2.0-flash-001";
+            else if (modelId === "gemini-pro") model = "google/gemini-2.5-flash";
 
+            console.log("Calling OpenRouter with model:", model);
             const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
               method: "POST",
               headers: {
@@ -146,10 +172,15 @@ export async function POST(req: NextRequest) {
                 model,
                 messages: [{ role: "user", content: enhancedContent }],
                 stream: true,
+                max_tokens: 4096, // Limit tokens to avoid credit issues
               })
             });
 
-            if (!response.ok) throw new Error(`API failed: ${response.status}`);
+            if (!response.ok) {
+              const errorText = await response.text();
+              console.error("OpenRouter API error:", response.status, errorText);
+              throw new Error(`API failed: ${response.status} - ${errorText}`);
+            }
 
             const reader = response.body?.getReader();
             const decoder = new TextDecoder();

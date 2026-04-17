@@ -47,6 +47,7 @@ GITHUB_CLIENT_SECRET=
 
 - **Multiple AI Models**: Gemini Pro, DeepSeek V3, Llama 3
 - **Web Search**: Automatic Tavily integration with source citations
+- **File Attachments**: Upload images, documents, and videos (up to 10MB)
 - **Conversation Branching**: Explore alternative conversation paths
 - **Message Reactions**: React to messages with emojis
 - **Message Remixing**: Transform messages into different styles
@@ -145,7 +146,14 @@ GITHUB_CLIENT_SECRET=
   }],
   importance: number,             // 0-1 relevance score
   isScheduled: boolean,
-  scheduledFor?: Date
+  scheduledFor?: Date,
+  attachments: [{                 // File attachments
+    id: string,
+    name: string,
+    type: string,
+    size: number,
+    url: string
+  }]
 }
 ```
 
@@ -199,6 +207,7 @@ Body: { targetMessageId: string }
 
 ### Chat
 - `POST /api/chat/stream` - Send message, get streaming response
+- `POST /api/upload` - Upload file attachments (images, documents, videos)
 
 ### Conversations
 - `GET /api/conversations` - List user's conversations
@@ -218,6 +227,52 @@ Body: { targetMessageId: string }
 - `GET /api/user/settings` - Get settings
 - `PATCH /api/user/settings` - Update settings
 - `DELETE /api/user/clear-history` - Clear all conversations
+
+## File Attachments
+
+The application supports uploading and sharing files in conversations with **automatic content extraction**.
+
+### Supported File Types
+- **Images**: JPEG, PNG, GIF, WebP
+- **Documents**: PDF, TXT, DOC, DOCX (with text extraction)
+- **Videos**: MP4, WebM, QuickTime
+
+### Features
+- Maximum file size: 10MB per file
+- Multiple file uploads per message
+- Client and server-side validation
+- **Automatic text extraction from PDFs and Word documents**
+- **AI can read and analyze document contents**
+- Image thumbnails in chat
+- Download links for documents and videos
+
+### How It Works
+1. Upload a document (PDF, DOCX, TXT)
+2. The system automatically extracts the text content
+3. The AI receives the document content along with your message
+4. The AI can summarize, analyze, or answer questions about the document
+
+### Usage
+1. Click the paperclip (📎) icon in the input area
+2. Select file type (Images, Documents, or Videos)
+3. Choose files from your device
+4. Files appear as chips with name and size
+5. Type your message (e.g., "Summarize this document")
+6. Send - the AI will read and respond to the document content
+
+### Example
+```
+User: [Uploads contract.pdf] "What are the key terms?"
+AI: Based on the contract you've uploaded, the key terms are:
+    1. Contract duration: 12 months
+    2. Payment terms: Net 30 days
+    3. Termination clause: 60-day notice required
+    ...
+```
+
+For detailed documentation:
+- [File Attachment Guide](docs/FILE_ATTACHMENT_GUIDE.md) - Complete feature documentation
+- [File Processing Guide](docs/FILE_PROCESSING.md) - Content extraction details
 
 ## Security
 
@@ -272,6 +327,7 @@ src/
 │   │   ├── react/        # Message reactions
 │   │   ├── remix/        # Message remixing
 │   │   ├── schedule/     # Scheduled messages
+│   │   ├── upload/       # File upload
 │   │   └── user/         # User management
 │   ├── chat/             # Chat UI pages
 │   ├── login/            # Login page

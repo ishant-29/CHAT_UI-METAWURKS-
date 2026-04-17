@@ -47,7 +47,7 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
       // Update URL without redirect - SPA style
       window.history.pushState({}, '', `/chat/${activeConvoId}`);
     }
-  }, [activeConvoId, conversationId, hasRedirected, messages.length, isLoading]);
+  }, [activeConvoId, conversationId, hasRedirected, messages.length, isLoading, setHasRedirected]);
 
   useEffect(() => {
     if (conversationId && messages.length === 0) {
@@ -93,7 +93,7 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
       }
   };
 
-  const handleSend = async (content: string, scheduledFor?: Date, useWebSearch?: boolean) => {
+  const handleSend = async (content: string, scheduledFor?: Date, useWebSearch?: boolean, attachments?: any[]) => {
       if (scheduledFor) {
           await fetch('/api/schedule', {
               method: 'POST',
@@ -101,7 +101,7 @@ export default function ChatWindow({ conversationId }: { conversationId?: string
               body: JSON.stringify({ content, conversationId: activeConvoId, scheduledFor, modelId: selectedModel.id })
           });
       } else {
-          sendMessage(content, selectedModel.id, useWebSearch);
+          sendMessage(content, selectedModel.id, useWebSearch, attachments);
       }
   };
 

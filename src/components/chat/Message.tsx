@@ -4,7 +4,7 @@ import { format } from "date-fns";
 import { Message as MessageType } from "@/types/chat";
 import ReactionBar from "./ReactionBar";
 import RemixPanel from "./RemixPanel";
-import { GitBranch, Copy, Check, Globe } from "lucide-react";
+import { GitBranch, Copy, Check, Globe, FileText, Video, Download } from "lucide-react";
 import TypewriterText from "@/components/ui/TypewriterText";
 import { parseMarkdown } from "@/lib/parseMarkdown";
 import { useState, useMemo } from "react";
@@ -35,6 +35,17 @@ export default function Message({ message, onReact, onBranch, modelName, modelIc
   const userContent = useMemo(() => parseMarkdown(message.content), [message.content]);
   const botContent = useMemo(() => parseMarkdown(message.content), [message.content]);
 
+  const getFileIcon = (type: string) => {
+    if (type.startsWith("video/")) return <Video size={16} className="text-[#3b82f6]" />;
+    return <FileText size={16} className="text-[#3b82f6]" />;
+  };
+
+  const formatFileSize = (bytes: number) => {
+    if (bytes < 1024) return bytes + " B";
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + " KB";
+    return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+  };
+
   return (
     <motion.div
       className={`flex items-start gap-3 w-full mb-5 ${isUser ? "flex-row-reverse" : "flex-row"}`}
@@ -56,6 +67,40 @@ export default function Message({ message, onReact, onBranch, modelName, modelIc
       )}
 
       <div className={`flex flex-col gap-1 max-w-[78%] ${isUser ? "items-end" : "items-start"}`}>
+        {/* Attachments */}
+        {message.attachments && message.attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-2">
+            {message.attachments.map((attachment) => (
+              <div
+                key={attachment.id}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border shadow-sm ${
+                  isUser
+                    ? "bg-white border-[#e2e8f0] text-[#0f172a]"
+                    : "bg-white border-[#e2e8f0] text-[#0f172a]"
+                }`}
+              >
+                <a
+                  href={attachment.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 hover:opacity-80 transition-opacity"
+                >
+                  {getFileIcon(attachment.type)}
+                  <div className="flex flex-col">
+                    <span className="text-[12px] font-medium max-w-[150px] truncate text-[#0f172a]">
+                      {attachment.name}
+                    </span>
+                    <span className="text-[10px] text-[#94a3b8]">
+                      {formatFileSize(attachment.size)}
+                    </span>
+                  </div>
+                  <Download size={14} className="text-[#94a3b8]" />
+                </a>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Bubble */}
         <div
           className={`px-4 py-3 text-[14px] leading-relaxed relative markdown-content ${
